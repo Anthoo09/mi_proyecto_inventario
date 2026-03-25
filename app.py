@@ -13,4 +13,4 @@ def producto(nombre):
     return f"Producto: {nombre} – disponible en inventario"
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=10000)
