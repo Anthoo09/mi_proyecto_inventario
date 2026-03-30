@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2>Datos TXT</h2>
+{% for linea in txt %}
+<p>{{ linea }}</p>
+{% endfor %}
+
+<h2>Datos JSON</h2>
+{% for item in json_data %}
+<p>{{ item }}</p>
+{% endfor %}
+
+<h2>Datos CSV</h2>
+{% for fila in csv_data %}
+<p>{{ fila }}</p>
+{% endfor %}
+
+{% endblock %}

@@ -11,6 +11,9 @@
     <button type="submit">Agregar</button>
 </form>
 
+<br>
+<a href="/datos">Ver datos guardados</a>
+
 <hr>
 
 <table border="1" style="margin:auto;">
@@ -24,12 +27,12 @@
 
     {% for producto in productos %}
     <tr>
-        <td>{{ producto[0] }}</td>
-        <td>{{ producto[1] }}</td>
-        <td>{{ producto[2] }}</td>
-        <td>{{ producto[3] }}</td>
+        <td>{{ producto.id }}</td>
+        <td>{{ producto.nombre }}</td>
+        <td>{{ producto.cantidad }}</td>
+        <td>{{ producto.precio }}</td>
         <td>
-            <a href="/eliminar/{{ producto[0] }}">Eliminar</a>
+            <a href="/eliminar/{{ producto.id }}">Eliminar</a>
         </td>
     </tr>
     {% endfor %}
