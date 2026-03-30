@@ -1,78 +1,92 @@
 from flask import Flask, render_template, request, redirect
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required
 from conexion.conexion import conectar
 
 app = Flask(__name__)
+app.secret_key = "secreto"
 
-@app.route('/')
-def inicio():
-    return render_template('index.html')
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "login"
 
-# MOSTRAR PRODUCTOS
-@app.route('/productos')
-def productos():
+# MODELO USUARIO
+class Usuario(UserMixin):
+    def __init__(self, id, nombre, email):
+        self.id = id
+        self.nombre = nombre
+        self.email = email
+
+@login_manager.user_loader
+def load_user(user_id):
     conn = conectar()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM productos")
-    datos = cursor.fetchall()
+    cursor.execute("SELECT * FROM usuarios WHERE id_usuario=%s", (user_id,))
+    user = cursor.fetchone()
     conn.close()
-    return render_template('productos.html', productos=datos)
 
-# AGREGAR PRODUCTO
-@app.route('/agregar', methods=['GET', 'POST'])
-def agregar():
+    if user:
+        return Usuario(user[0], user[1], user[2])
+    return None
+
+# REGISTRO
+@app.route('/registro', methods=['GET', 'POST'])
+def registro():
     if request.method == 'POST':
         nombre = request.form['nombre']
-        cantidad = request.form['cantidad']
-        precio = request.form['precio']
+        email = request.form['email']
+        password = request.form['password']
 
         conn = conectar()
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO productos (nombre, cantidad, precio) VALUES (%s, %s, %s)",
-            (nombre, cantidad, precio)
+            "INSERT INTO usuarios (nombre, email, password) VALUES (%s, %s, %s)",
+            (nombre, email, password)
         )
         conn.commit()
         conn.close()
 
-        return redirect('/productos')
+        return redirect('/login')
 
-    return render_template('producto_form.html')
+    return render_template('registro.html')
 
-# EDITAR PRODUCTO
-@app.route('/editar/<int:id>', methods=['GET', 'POST'])
-def editar(id):
-    conn = conectar()
-    cursor = conn.cursor()
+# LOGIN
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    mensaje = ""
 
     if request.method == 'POST':
-        nombre = request.form['nombre']
-        cantidad = request.form['cantidad']
-        precio = request.form['precio']
+        email = request.form['email']
+        password = request.form['password']
 
-        cursor.execute(
-            "UPDATE productos SET nombre=%s, cantidad=%s, precio=%s WHERE id=%s",
-            (nombre, cantidad, precio, id)
-        )
-        conn.commit()
+        conn = conectar()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM usuarios WHERE email=%s", (email,))
+        user = cursor.fetchone()
         conn.close()
-        return redirect('/productos')
 
-    cursor.execute("SELECT * FROM productos WHERE id=%s", (id,))
-    producto = cursor.fetchone()
-    conn.close()
+        if user:
+            if user[3] == password:
+                usuario = Usuario(user[0], user[1], user[2])
+                login_user(usuario)
+                return redirect('/panel')
+            else:
+                mensaje = "Contraseña incorrecta"
+        else:
+            mensaje = "Usuario no existe"
 
-    return render_template('editar.html', producto=producto)
+    return render_template('login.html', mensaje=mensaje)
+# LOGOUT
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect('/login')
 
-# ELIMINAR PRODUCTO
-@app.route('/eliminar/<int:id>')
-def eliminar(id):
-    conn = conectar()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM productos WHERE id=%s", (id,))
-    conn.commit()
-    conn.close()
-    return redirect('/productos')
-
+# PANEL PROTEGIDO
+@app.route('/panel')
+@login_required
+def panel():
+    return render_template('panel.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
