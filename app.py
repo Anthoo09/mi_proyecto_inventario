@@ -1,98 +1,78 @@
 from flask import Flask, render_template, request, redirect
-from flask_sqlalchemy import SQLAlchemy
-import json
-import csv
+from conexion.conexion import conectar
 
 app = Flask(__name__)
 
-# CONFIGURACIÓN BASE DE DATOS
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///inventario.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-db = SQLAlchemy(app)
-
-# MODELO
-class Producto(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String(100))
-    cantidad = db.Column(db.Integer)
-    precio = db.Column(db.Float)
-
-# CREAR TABLA
-with app.app_context():
-    db.create_all()
-
-# INICIO
 @app.route('/')
 def inicio():
-    productos = Producto.query.all()
-    return render_template('index.html', productos=productos)
+    return render_template('index.html')
+
+# MOSTRAR PRODUCTOS
+@app.route('/productos')
+def productos():
+    conn = conectar()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM productos")
+    datos = cursor.fetchall()
+    conn.close()
+    return render_template('productos.html', productos=datos)
 
 # AGREGAR PRODUCTO
-@app.route('/agregar', methods=['POST'])
+@app.route('/agregar', methods=['GET', 'POST'])
 def agregar():
-    nombre = request.form['nombre']
-    cantidad = int(request.form['cantidad'])
-    precio = float(request.form['precio'])
+    if request.method == 'POST':
+        nombre = request.form['nombre']
+        cantidad = request.form['cantidad']
+        precio = request.form['precio']
 
-    nuevo = Producto(nombre=nombre, cantidad=cantidad, precio=precio)
-    db.session.add(nuevo)
-    db.session.commit()
+        conn = conectar()
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO productos (nombre, cantidad, precio) VALUES (%s, %s, %s)",
+            (nombre, cantidad, precio)
+        )
+        conn.commit()
+        conn.close()
 
-    # TXT
-    with open('datos.txt', 'a') as f:
-        f.write(f"{nombre},{cantidad},{precio}\n")
+        return redirect('/productos')
 
-    # JSON
-    data = {"nombre": nombre, "cantidad": cantidad, "precio": precio}
-    try:
-        with open('datos.json', 'r') as f:
-            lista = json.load(f)
-    except:
-        lista = []
+    return render_template('producto_form.html')
 
-    lista.append(data)
-    with open('datos.json', 'w') as f:
-        json.dump(lista, f)
+# EDITAR PRODUCTO
+@app.route('/editar/<int:id>', methods=['GET', 'POST'])
+def editar(id):
+    conn = conectar()
+    cursor = conn.cursor()
 
-    # CSV
-    with open('datos.csv', 'a', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow([nombre, cantidad, precio])
+    if request.method == 'POST':
+        nombre = request.form['nombre']
+        cantidad = request.form['cantidad']
+        precio = request.form['precio']
 
-    return redirect('/')
+        cursor.execute(
+            "UPDATE productos SET nombre=%s, cantidad=%s, precio=%s WHERE id=%s",
+            (nombre, cantidad, precio, id)
+        )
+        conn.commit()
+        conn.close()
+        return redirect('/productos')
 
-# VER DATOS
-@app.route('/datos')
-def ver_datos():
+    cursor.execute("SELECT * FROM productos WHERE id=%s", (id,))
+    producto = cursor.fetchone()
+    conn.close()
 
-    try:
-        with open('datos.txt', 'r') as f:
-            txt = f.readlines()
-    except:
-        txt = []
+    return render_template('editar.html', producto=producto)
 
-    try:
-        with open('datos.json', 'r') as f:
-            json_data = json.load(f)
-    except:
-        json_data = []
-
-    try:
-        with open('datos.csv', 'r') as f:
-            csv_data = list(csv.reader(f))
-    except:
-        csv_data = []
-
-    return render_template('datos.html', txt=txt, json_data=json_data, csv_data=csv_data)
-
-# ELIMINAR
+# ELIMINAR PRODUCTO
 @app.route('/eliminar/<int:id>')
 def eliminar(id):
-    producto = Producto.query.get(id)
-    db.session.delete(producto)
-    db.session.commit()
-    return redirect('/')
+    conn = conectar()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM productos WHERE id=%s", (id,))
+    conn.commit()
+    conn.close()
+    return redirect('/productos')
+
 
 if __name__ == '__main__':
     app.run(debug=True)
