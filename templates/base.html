@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Inventario SmartTech</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+
+    <header>
+        <h1>📱 Inventario SmartTech</h1>
+        <nav>
+            <a href="/">Inicio</a>
+            <a href="/about">Acerca de</a>
+        </nav>
+        <hr>
+    </header>
+
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <footer>
+        <hr>
+        <p>© 2026 Inventario SmartTech</p>
+    </footer>
+
+</body>
+</html>

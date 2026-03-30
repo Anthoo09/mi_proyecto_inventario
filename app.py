@@ -1,16 +1,18 @@
-from flask import Flask
+from flask import Flask, render_template
 
 app = Flask(__name__)
 
-# Ruta principal
 @app.route('/')
 def inicio():
-    return "Bienvenido a Inventario SmartTech – Control de celulares"
+    return render_template('index.html')
 
-# Ruta dinámica
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
 @app.route('/producto/<nombre>')
 def producto(nombre):
-    return f"Producto: {nombre} – disponible en inventario"
+    return f"Producto: {nombre} - disponible en inventario"
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=10000)
+    app.run(debug=True)
