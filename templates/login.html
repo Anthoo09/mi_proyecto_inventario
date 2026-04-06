@@ -1,16 +1,95 @@
-{% extends 'base.html' %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Login</title>
 
-{% block content %}
-<h2>Login</h2>
+<style>
+body {
+    margin: 0;
+    height: 100vh;
+    font-family: Arial;
+    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
 
-<form method="POST">
-    <input type="email" name="email" placeholder="Email" required><br><br>
-    <input type="password" name="password" placeholder="Contraseña" required><br><br>
-    <button type="submit">Ingresar</button>
-</form>
+.container {
+    display: flex;
+    width: 700px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 0 30px rgba(0,0,0,0.5);
+}
 
-{% if mensaje %}
-<p style="color:red;">{{ mensaje }}</p>
-{% endif %}
+.left {
+    flex: 1;
+    background: url('/static/img/fondo.jpg') no-repeat center;
+    background-size: cover;
+}
 
-{% endblock %}
+.right {
+    flex: 1;
+    padding: 40px;
+    color: white;
+}
+
+h2 {
+    text-align: center;
+}
+
+input {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: none;
+    border-radius: 5px;
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    background: #00c6ff;
+    border: none;
+    color: white;
+    font-weight: bold;
+    border-radius: 5px;
+}
+
+.error {
+    color: #ff4d4d;
+}
+
+a {
+    color: #00c6ff;
+    text-decoration: none;
+}
+</style>
+
+</head>
+<body>
+
+<div class="container">
+
+<div class="left"></div>
+
+<div class="right">
+    <h2>Iniciar Sesión</h2>
+
+    <form method="POST">
+        <input type="email" name="email" placeholder="Correo" required>
+        <input type="password" name="password" placeholder="Contraseña" required>
+        <button>Ingresar</button>
+    </form>
+
+    <p class="error">{{ mensaje }}</p>
+
+    <p>¿No tienes cuenta? <a href="/registro">Regístrate</a></p>
+</div>
+
+</div>
+
+</body>
+</html>

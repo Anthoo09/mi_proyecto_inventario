@@ -1,35 +1,70 @@
-{% extends 'base.html' %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Productos</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="panel">
+        <h1>Panel de Productos</h1>
 
-{% block content %}
-<h2>Lista de Productos</h2>
+        <!-- Mensaje de éxito o error opcional -->
+        {% if mensaje %}
+            <div class="mensaje">{{ mensaje }}</div>
+        {% endif %}
 
-<a href="/agregar">Agregar Producto</a>
-<br><br>
+        <!-- Tabla de Productos -->
+        <table class="tabla-productos">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Cantidad</th>
+                    <th>Precio</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in productos %}
+                <tr>
+                    <td>{{ p[0] }}</td>
+                    <td>{{ p[1] }}</td>
+                    <td>{{ p[2] }}</td>
+                    <td>{{ p[3] }}</td>
+                    <td>
+                        <a href="{{ url_for('editar', id=p[0]) }}" class="btn-editar">Editar</a>
+                        <a href="{{ url_for('eliminar', id=p[0]) }}" class="btn-eliminar">Eliminar</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
 
-<a href="/reporte" target="_blank">📄 Generar PDF</a>
+        <!-- Formulario Agregar Producto -->
+        <div class="agregar-producto">
+            <h2>Agregar Nuevo Producto</h2>
+            <form action="{{ url_for('agregar') }}" method="POST">
+                <input type="text" name="nombre" placeholder="Nombre" required>
+                <input type="number" name="cantidad" placeholder="Cantidad" required>
+                <input type="number" step="0.01" name="precio" placeholder="Precio" required>
+                <button type="submit">Agregar</button>
+            </form>
+        </div>
+    </div>
 
-<br><br>
-
-<table border="1">
-    <tr>
-        <th>ID</th>
-        <th>Nombre</th>
-        <th>Cantidad</th>
-        <th>Precio</th>
-        <th>Acciones</th>
-    </tr>
-
-    {% for p in productos %}
-    <tr>
-        <td>{{ p[0] }}</td>
-        <td>{{ p[1] }}</td>
-        <td>{{ p[2] }}</td>
-        <td>{{ p[3] }}</td>
-        <td>
-            <a href="/eliminar/{{ p[0] }}">Eliminar</a>
-        </td>
-    </tr>
-    {% endfor %}
-</table>
-
-{% endblock %}
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f4f4; }
+        .panel { width: 80%; margin: auto; background: #fff; padding: 20px; border-radius: 5px; }
+        h1 { text-align: center; color: #333; }
+        .tabla-productos { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .tabla-productos th, .tabla-productos td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+        .tabla-productos th { background: #333; color: #fff; }
+        .btn-editar { color: #fff; background: #007ACC; padding: 4px 8px; text-decoration: none; border-radius: 3px; }
+        .btn-eliminar { color: #fff; background: #D9534F; padding: 4px 8px; text-decoration: none; border-radius: 3px; }
+        .agregar-producto { margin-top: 30px; }
+        .agregar-producto input { margin-right: 10px; padding: 5px; }
+        .agregar-producto button { padding: 5px 10px; background: #5CB85C; color: #fff; border: none; border-radius: 3px; }
+    </style>
+</body>
+</html>

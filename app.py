@@ -1,23 +1,30 @@
-from flask import Flask, render_template, request, redirect, make_response
+from flask import Flask, render_template, request, redirect, send_file
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required
 from conexion.conexion import conectar
-from services.producto_service import obtener_productos, agregar_producto, eliminar_producto
-from fpdf import FPDF
+import hashlib
+from reportlab.platypus import SimpleDocTemplate, Table, Paragraph, Spacer
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = "secreto"
-
-# ---------------- LOGIN ----------------
+app.secret_key = "secreto123"
 
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
+
+
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
 
 class Usuario(UserMixin):
     def __init__(self, id, nombre, email):
         self.id = id
         self.nombre = nombre
         self.email = email
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -30,42 +37,16 @@ def load_user(user_id):
     if user:
         return Usuario(user[0], user[1], user[2])
     return None
-@app.route('/')
-@login_required
-def inicio():
-    return redirect('/panel')
 
-# ---------------- REGISTRO ----------------
 
-@app.route('/registro', methods=['GET', 'POST'])
-def registro():
-    if request.method == 'POST':
-        nombre = request.form['nombre']
-        email = request.form['email']
-        password = request.form['password']
-
-        conn = conectar()
-        cursor = conn.cursor()
-        cursor.execute(
-            "INSERT INTO usuarios (nombre, email, password) VALUES (%s, %s, %s)",
-            (nombre, email, password)
-        )
-        conn.commit()
-        conn.close()
-
-        return redirect('/login')
-
-    return render_template('registro.html')
-
-# ---------------- LOGIN ----------------
-
-@app.route('/login', methods=['GET', 'POST'])
+# LOGIN
+@app.route('/', methods=['GET', 'POST'])
 def login():
     mensaje = ""
 
     if request.method == 'POST':
         email = request.form['email']
-        password = request.form['password']
+        password = hash_password(request.form['password'])
 
         conn = conectar()
         cursor = conn.cursor()
@@ -73,83 +54,165 @@ def login():
         user = cursor.fetchone()
         conn.close()
 
-        if user:
-            if user[3] == password:
-                usuario = Usuario(user[0], user[1], user[2])
-                login_user(usuario)
-                return redirect('/panel')
-            else:
-                mensaje = "Contraseña incorrecta"
+        if user and user[3] == password:
+            login_user(Usuario(user[0], user[1], user[2]))
+            return redirect('/panel')
         else:
-            mensaje = "Usuario no existe"
+            mensaje = "❌ Datos incorrectos"
 
     return render_template('login.html', mensaje=mensaje)
 
-# ---------------- LOGOUT ----------------
 
-@app.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    return redirect('/login')
-
-# ---------------- PANEL ----------------
-
+# PANEL
 @app.route('/panel')
 @login_required
 def panel():
     return render_template('panel.html')
 
-# ---------------- PRODUCTOS (CRUD) ----------------
 
+# PRODUCTOS
 @app.route('/productos')
 @login_required
 def productos():
-    datos = obtener_productos()
+    conn = conectar()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM productos")
+    datos = cursor.fetchall()
+    conn.close()
+
     return render_template('productos.html', productos=datos)
 
-@app.route('/agregar', methods=['GET', 'POST'])
+
+# AGREGAR
+@app.route('/agregar', methods=['POST'])
 @login_required
 def agregar():
-    if request.method == 'POST':
-        nombre = request.form['nombre']
-        cantidad = request.form['cantidad']
-        precio = request.form['precio']
+    conn = conectar()
+    cursor = conn.cursor()
 
-        agregar_producto(nombre, cantidad, precio)
+    cursor.execute(
+        "INSERT INTO productos (nombre, cantidad, precio) VALUES (%s,%s,%s)",
+        (request.form['nombre'], request.form['cantidad'], request.form['precio'])
+    )
+
+    conn.commit()
+    conn.close()
+
+    return redirect('/productos')
+
+
+# EDITAR
+@app.route('/editar/<int:id>', methods=['GET', 'POST'])
+@login_required
+def editar(id):
+    conn = conectar()
+    cursor = conn.cursor()
+
+    if request.method == 'POST':
+        cursor.execute(
+            "UPDATE productos SET nombre=%s, cantidad=%s, precio=%s WHERE id=%s",
+            (request.form['nombre'], request.form['cantidad'], request.form['precio'], id)
+        )
+        conn.commit()
+        conn.close()
         return redirect('/productos')
 
-    return render_template('producto_form.html')
+    cursor.execute("SELECT * FROM productos WHERE id=%s", (id,))
+    producto = cursor.fetchone()
+    conn.close()
 
+    return render_template('editar.html', producto=producto)
+
+
+# ELIMINAR
 @app.route('/eliminar/<int:id>')
 @login_required
 def eliminar(id):
-    eliminar_producto(id)
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("DELETE FROM productos WHERE id=%s", (id,))
+
+    conn.commit()
+    conn.close()
+
     return redirect('/productos')
 
-# ---------------- PDF ----------------
 
-@app.route('/reporte')
+# VENTAS
+@app.route('/ventas', methods=['GET', 'POST'])
 @login_required
-def reporte():
-    productos = obtener_productos()
+def ventas():
+    conn = conectar()
+    cursor = conn.cursor()
 
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
+    if request.method == 'POST':
+        id_producto = request.form['producto']
+        cantidad = int(request.form['cantidad'])
+        fecha = request.form['fecha']
 
-    pdf.cell(200, 10, txt="Reporte de Productos", ln=True)
+        cursor.execute(
+            "INSERT INTO ventas (id_producto, fecha) VALUES (%s,%s)",
+            (id_producto, fecha)
+        )
 
-    for p in productos:
-        pdf.cell(200, 10, txt=f"{p[1]} - Cantidad: {p[2]} - Precio: {p[3]}", ln=True)
+        cursor.execute(
+            "UPDATE productos SET cantidad = cantidad - %s WHERE id=%s",
+            (cantidad, id_producto)
+        )
 
-    response = make_response(pdf.output(dest='S').encode('latin-1'))
-    response.headers['Content-Type'] = 'application/pdf'
-    response.headers['Content-Disposition'] = 'inline; filename=reporte.pdf'
+        conn.commit()
 
-    return response
+    cursor.execute("SELECT * FROM productos")
+    productos = cursor.fetchall()
+    conn.close()
 
-# ---------------- RUN ----------------
+    return render_template('ventas.html', productos=productos)
+
+
+# PDF
+@app.route('/pdf')
+@login_required
+def pdf():
+    conn = conectar()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM productos")
+    datos = cursor.fetchall()
+    conn.close()
+
+    doc = SimpleDocTemplate("reporte.pdf")
+    estilos = getSampleStyleSheet()
+
+    elementos = []
+    elementos.append(Paragraph("📱 REPORTE DE PRODUCTOS", estilos['Title']))
+    elementos.append(Spacer(1, 10))
+    elementos.append(Paragraph(f"Fecha: {datetime.now()}", estilos['Normal']))
+    elementos.append(Spacer(1, 20))
+
+    tabla_data = [["ID", "Nombre", "Cantidad", "Precio"]]
+
+    for d in datos:
+        tabla_data.append([d[0], d[1], d[2], d[3]])
+
+    tabla = Table(tabla_data)
+    tabla.setStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ])
+
+    elementos.append(tabla)
+    doc.build(elementos)
+
+    return send_file("reporte.pdf", as_attachment=True)
+
+
+# LOGOUT
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect('/')
+
 
 if __name__ == '__main__':
     app.run(debug=True)

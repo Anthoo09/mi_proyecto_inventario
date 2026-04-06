@@ -1,30 +1,59 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Inventario SmartTech</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+<meta charset="UTF-8">
+<title>Inventario</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+body {
+    background-color: #f4f6f9;
+}
+
+.sidebar {
+    height: 100vh;
+    background: #2c3e50;
+    color: white;
+    padding: 20px;
+    position: fixed;
+    width: 200px;
+}
+
+.sidebar a {
+    display: block;
+    color: white;
+    margin: 10px 0;
+    text-decoration: none;
+}
+
+.sidebar a:hover {
+    background: #34495e;
+    padding: 5px;
+    border-radius: 5px;
+}
+
+.content {
+    margin-left: 220px;
+    padding: 20px;
+}
+</style>
 </head>
+
 <body>
 
-    <header>
-        <h1>📱 Inventario SmartTech</h1>
-        <nav>
-            <a href="/">Inicio</a>
-            <a href="/about">Acerca de</a>
-        </nav>
-        <hr>
-    </header>
+<div class="sidebar">
+<h4>📱 SmartTech</h4>
 
-    <main>
-        {% block content %}
-        {% endblock %}
-    </main>
+<a href="/panel">🏠 Panel</a>
+<a href="/productos">📦 Productos</a>
+<a href="/reporte">📊 Reporte</a>
+<a href="/logout">🚪 Salir</a>
+</div>
 
-    <footer>
-        <hr>
-        <p>© 2026 Inventario SmartTech</p>
-    </footer>
+<div class="content">
+{% block content %}{% endblock %}
+</div>
 
 </body>
 </html>
